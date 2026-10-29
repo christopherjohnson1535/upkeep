@@ -40,6 +40,10 @@
     @apply border-ink outline-none;
   }
 
+  input[list]::-webkit-calendar-picker-indicator {
+    display: none !important;
+  }
+
   dialog::backdrop {
     background: rgb(22 25 29 / 0.32);
   }

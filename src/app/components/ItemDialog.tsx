@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ItemInput, ItemWithDue, Unit } from '../../shared/types'
+import { COMMON_TASKS, findCommon, type CommonTask } from '../common'
 import { today } from '../format'
 
 export type SaveInput = ItemInput & { lastDone?: { doneOn: string; odometer: number | null } }
@@ -8,6 +9,7 @@ interface Props {
   item: ItemWithDue | null
   open: boolean
   categories: string[]
+  tracked: string[]
   onClose: () => void
   onSave: (input: SaveInput) => Promise<void>
   onDelete: (item: ItemWithDue) => Promise<void>
@@ -32,7 +34,7 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor: string; c
   )
 }
 
-export function ItemDialog({ item, open, categories, onClose, onSave, onDelete }: Props) {
+export function ItemDialog({ item, open, categories, tracked, onClose, onSave, onDelete }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
   const [name, setName] = useState('')
   const [category, setCategory] = useState('home')
@@ -66,6 +68,26 @@ export function ItemDialog({ item, open, categories, onClose, onSave, onDelete }
     if (open && !dialog.open) dialog.showModal()
     if (!open && dialog.open) dialog.close()
   }, [open])
+
+  function applyTask(task: CommonTask) {
+    setName(task.name)
+    setCategory(task.category)
+    setEvery(String(task.every))
+    setUnit(task.unit)
+    setFallback(String(task.fallbackMonths ?? 6))
+    setLeadDays(String(task.leadDays ?? 7))
+  }
+
+  function changeName(value: string) {
+    setName(value)
+    // Picking a name from the list fills in the rest, same as tapping a suggestion.
+    const task = !item && findCommon(value)
+    if (task) applyTask(task)
+  }
+
+  const untracked = COMMON_TASKS.filter((t) => !tracked.includes(t.name.toLowerCase()))
+  const sameCategory = untracked.filter((t) => t.category === category.trim().toLowerCase())
+  const suggestions = (sameCategory.length ? sameCategory : untracked).slice(0, 6)
 
   // "Every 6 miles" is never what anyone means, so swap in a sensible default.
   function changeUnit(next: Unit) {
@@ -120,11 +142,34 @@ export function ItemDialog({ item, open, categories, onClose, onSave, onDelete }
           <input
             id="f-name"
             required
+            list={item ? undefined : 'f-common'}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => changeName(e.target.value)}
             placeholder="Replace furnace filter"
           />
+          {!item && (
+            <datalist id="f-common">
+              {untracked.map((t) => (
+                <option key={t.name} value={t.name} />
+              ))}
+            </datalist>
+          )}
         </Field>
+
+        {!item && !name && suggestions.length > 0 && (
+          <div className="-mt-2 flex flex-wrap gap-2" aria-label="Common tasks">
+            {suggestions.map((t) => (
+              <button
+                key={t.name}
+                type="button"
+                onClick={() => applyTask(t)}
+                className="h-8 rounded-full border border-rule bg-card px-3 text-[13px] text-muted transition-colors hover:border-ink hover:text-ink"
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         <Field label="Category" htmlFor="f-category">
           <input

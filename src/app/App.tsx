@@ -158,8 +158,8 @@ export function App() {
           <section className="flex flex-col items-start gap-4">
             <h1 className="text-[32px] leading-tight font-medium tracking-tight sm:text-[40px]">Nothing to keep track of yet.</h1>
             <p className="max-w-md text-muted">
-              Add the first thing you keep forgetting, like the furnace filter or the oil change. You'll set how
-              often it repeats and when it was last done.
+              Add the first thing you keep forgetting. Common ones like the furnace filter and the oil change are
+              ready to pick, so all you set is when it was last done.
             </p>
             <button
               onClick={() => openDialog(null)}
@@ -252,6 +252,7 @@ export function App() {
         item={editing}
         open={dialogOpen}
         categories={categories}
+        tracked={(items ?? []).map((i) => i.name.toLowerCase())}
         onClose={() => setDialogOpen(false)}
         onSave={save}
         onDelete={remove}
