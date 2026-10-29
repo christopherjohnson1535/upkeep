@@ -11,8 +11,7 @@
     {
       "binding": "DB",
       "database_name": "upkeep",
-      // from `npx wrangler d1 create upkeep`
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "3d87df38-29de-4ea0-8a76-25d038554604",
       "migrations_dir": "migrations"
     }
   ],

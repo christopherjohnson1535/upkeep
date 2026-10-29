@@ -19,10 +19,9 @@ npm run dev
 
 Pushes to `main` deploy through GitHub Actions. One-time setup:
 
-1. `npx wrangler d1 create upkeep` and paste the `database_id` into `wrangler.jsonc`.
-2. Create a Cloudflare API token with the "Edit Cloudflare Workers" template plus D1 edit.
-3. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as repository secrets.
-4. Push. The workflow applies migrations and deploys.
+1. Create a Cloudflare API token with the "Edit Cloudflare Workers" template plus D1 edit.
+2. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as repository secrets.
+3. Push. The workflow applies migrations and deploys.
 
 Until the token is set, the deploy job skips itself.
 
