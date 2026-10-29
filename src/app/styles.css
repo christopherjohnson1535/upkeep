@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/geist';
+
+/* Every colour in the app comes from here. Restyling starts and usually ends in this block. */
+@theme {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --color-paper: #f6f7f8;
+  --color-card: #ffffff;
+  --color-ink: #16191d;
+  --color-muted: #5e6570;
+  --color-faint: #9aa1aa;
+  --color-rule: #e2e5e9;
+  --color-overdue: #c2410c;
+  --color-soon: #a16207;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    @apply bg-paper text-ink antialiased;
+    font-feature-settings: 'ss01';
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ink;
+  }
+
+  input,
+  select,
+  textarea {
+    @apply rounded-lg border border-rule bg-card px-3 py-2 text-[15px] text-ink;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    @apply border-ink outline-none;
+  }
+
+  dialog::backdrop {
+    background: rgb(22 25 29 / 0.32);
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+@utility nums {
+  font-variant-numeric: tabular-nums;
+}
