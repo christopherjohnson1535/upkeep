@@ -1,41 +1,39 @@
-export type Unit = 'day' | 'week' | 'month' | 'year' | 'mile'
+export type Unit = 'day' | 'week' | 'month' | 'year'
+export type Kind = 'home' | 'car' | 'other'
 
-export interface Item {
+export interface Task {
   id: number
+  groupId: number
   name: string
-  category: string
   every: number
   unit: Unit
-  fallbackMonths: number | null
-  leadDays: number
+  startsOn: string
+  remindDays: number
+  miles: number | null
+  notes: string | null
+  updatedAt: string
+}
+
+export interface Group {
+  id: number
+  name: string
+  kind: Kind
+  token: string
+  archived: boolean
+  tasks: Task[]
+}
+
+export interface TaskInput {
+  name: string
+  every: number
+  unit: Unit
+  startsOn: string
+  remindDays: number
+  miles: number | null
   notes: string | null
 }
 
-export interface Completion {
-  id: number
-  doneOn: string
-  odometer: number | null
-  note: string | null
-}
-
-export interface ItemWithDue extends Item {
-  last: Completion | null
-  dueOn: string | null
-  dueMiles: number | null
-}
-
-export interface ItemInput {
+export interface GroupInput {
   name: string
-  category: string
-  every: number
-  unit: Unit
-  fallbackMonths?: number | null
-  leadDays?: number
-  notes?: string | null
-}
-
-export interface CompletionInput {
-  doneOn: string
-  odometer?: number | null
-  note?: string | null
+  kind: Kind
 }

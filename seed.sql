@@ -1,21 +1,20 @@
 -- Sample data for local development: npm run db:seed
 
-INSERT INTO items (id, name, category, every, unit, fallback_months, lead_days) VALUES
-  (1, 'Change oil', 'car', 5000, 'mile', 6, 7),
-  (2, 'Rotate tires', 'car', 5000, 'mile', 6, 7),
-  (3, 'Replace HVAC filter', 'home', 3, 'month', NULL, 7),
-  (4, 'Clean gutters', 'yard', 1, 'year', NULL, 14),
-  (5, 'Test smoke detectors', 'home', 6, 'month', NULL, 7),
-  (6, 'Flush water heater', 'home', 1, 'year', NULL, 14),
-  (7, 'Clean dryer vent', 'home', 1, 'year', NULL, 14),
-  (8, 'Deep clean fridge', 'home', 3, 'month', NULL, 7);
+INSERT INTO groups (id, name, kind, token) VALUES
+  (1, 'Elm St house', 'home', 'localhouse0000000000000000000001'),
+  (2, 'Civic', 'car', 'localcar00000000000000000000002'),
+  (3, 'Maple Ave house', 'home', 'localold00000000000000000000003');
 
-INSERT INTO completions (item_id, done_on, odometer) VALUES
-  (1, '2026-05-03', 46100),
-  (2, '2026-04-12', 45800),
-  (3, '2026-08-14', NULL),
-  (4, '2025-10-25', NULL),
-  (5, '2026-05-20', NULL),
-  (6, '2025-11-28', NULL),
-  (7, '2026-10-24', NULL),
-  (8, '2026-09-02', NULL);
+UPDATE groups SET archived_at = datetime('now') WHERE id = 3;
+
+INSERT INTO tasks (group_id, name, every, unit, starts_on, remind_days, miles, notes) VALUES
+  (1, 'Replace HVAC filter', 3, 'month', '2026-11-14', 7, NULL, 'Filter size 16x25x1'),
+  (1, 'Test smoke and CO detectors', 6, 'month', '2026-11-20', 7, NULL, NULL),
+  (1, 'Clean gutters', 6, 'month', '2027-04-15', 14, NULL, NULL),
+  (1, 'Flush water heater', 1, 'year', '2026-11-28', 14, NULL, NULL),
+  (1, 'Clean dryer vent', 1, 'year', '2027-10-24', 14, NULL, NULL),
+  (1, 'Deep clean kitchen', 3, 'month', '2026-12-02', 7, NULL, NULL),
+  (2, 'Change oil', 6, 'month', '2026-11-03', 7, 5000, '0W-20, 4.4 qt'),
+  (2, 'Rotate tires', 6, 'month', '2027-01-12', 7, 5000, NULL),
+  (2, 'Replace cabin air filter', 1, 'year', '2027-04-01', 14, 15000, NULL),
+  (3, 'Replace HVAC filter', 3, 'month', '2026-01-10', 7, NULL, NULL);
