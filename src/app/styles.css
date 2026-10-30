@@ -11,8 +11,7 @@
   --color-muted: #5e6570;
   --color-faint: #9aa1aa;
   --color-rule: #e2e5e9;
-  --color-overdue: #c2410c;
-  --color-soon: #a16207;
+  --color-danger: #b42318;
 
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -20,7 +19,6 @@
 @layer base {
   html {
     @apply bg-paper text-ink antialiased;
-    font-feature-settings: 'ss01';
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -67,4 +65,16 @@
 
 @utility nums {
   font-variant-numeric: tabular-nums;
+}
+
+@utility button-primary {
+  @apply inline-flex h-11 items-center justify-center rounded-full bg-ink px-5 text-sm font-medium text-paper transition-transform active:scale-[0.97] disabled:opacity-60;
+}
+
+@utility button-secondary {
+  @apply inline-flex h-11 items-center justify-center rounded-full border border-rule bg-card px-5 text-sm font-medium text-ink transition-colors hover:border-ink;
+}
+
+@utility button-quiet {
+  @apply inline-flex h-11 items-center px-3 text-sm text-muted transition-colors hover:text-ink;
 }

@@ -15,7 +15,7 @@ export function Toast({ toast, onDismiss }: { toast: ToastMessage | null; onDism
   }, [toast, onDismiss])
 
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-24 z-10 sm:bottom-6 flex justify-center px-4">
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-6 z-10 flex justify-center px-4">
       <AnimatePresence>
         {toast && (
           <motion.div

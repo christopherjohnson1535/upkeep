@@ -1,113 +1,94 @@
-import { LayoutGroup, motion } from 'motion/react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { daysBetween, status, type Status } from '../shared/due'
-import type { ItemWithDue } from '../shared/types'
+import { AnimatePresence, motion } from 'motion/react'
+import { useCallback, useEffect, useState } from 'react'
+import type { Group, GroupInput, Task, TaskInput } from '../shared/types'
 import { api } from './api'
-import { ItemDialog, type SaveInput } from './components/ItemDialog'
-import { ItemRow } from './components/ItemRow'
+import { GroupDialog } from './components/GroupDialog'
+import { TaskDialog } from './components/TaskDialog'
 import { Toast, type ToastMessage } from './components/Toast'
-import { today } from './format'
+import { GroupList } from './GroupList'
+import { GroupPage } from './GroupPage'
 
-type View = 'next' | 'all'
-
-const WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine']
-const count = (n: number) => WORDS[n] ?? String(n)
-
-function byDue(a: ItemWithDue, b: ItemWithDue) {
-  if (!a.last !== !b.last) return a.last ? 1 : -1
-  if (a.dueOn && b.dueOn) return a.dueOn.localeCompare(b.dueOn)
-  if (a.dueOn !== b.dueOn) return a.dueOn ? -1 : 1
-  return a.name.localeCompare(b.name)
-}
-
-function viewFromPath(): View {
-  return location.pathname.startsWith('/all') ? 'all' : 'next'
+const groupFromPath = () => {
+  const match = location.pathname.match(/^\/g\/(\d+)/)
+  return match ? Number(match[1]) : null
 }
 
 export function App() {
-  const [items, setItems] = useState<ItemWithDue[] | null>(null)
+  const [groups, setGroups] = useState<Group[] | null>(null)
   const [loadError, setLoadError] = useState('')
-  const [view, setView] = useState<View>(viewFromPath)
-  const [editing, setEditing] = useState<ItemWithDue | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [groupId, setGroupId] = useState<number | null>(groupFromPath)
+  const [taskDialog, setTaskDialog] = useState<{ open: boolean; task: Task | null }>({ open: false, task: null })
+  const [groupDialog, setGroupDialog] = useState<{ open: boolean; group: Group | null; copyFrom: number | null }>({
+    open: false,
+    group: null,
+    copyFrom: null,
+  })
   const [toast, setToast] = useState<ToastMessage | null>(null)
-
-  const now = today()
   const dismissToast = useCallback(() => setToast(null), [])
 
   const load = useCallback(() => {
     setLoadError('')
-    api.items().then(setItems, (err: Error) => setLoadError(err.message))
+    api.groups().then(setGroups, (err: Error) => setLoadError(err.message))
   }, [])
 
   useEffect(load, [load])
 
   useEffect(() => {
-    const onPop = () => setView(viewFromPath())
+    const onPop = () => setGroupId(groupFromPath())
     addEventListener('popstate', onPop)
     return () => removeEventListener('popstate', onPop)
   }, [])
 
-  function go(next: View) {
-    history.pushState(null, '', next === 'all' ? '/all' : '/')
-    setView(next)
+  function go(id: number | null) {
+    history.pushState(null, '', id == null ? '/' : `/g/${id}`)
+    setGroupId(id)
+    scrollTo(0, 0)
   }
 
-  function replace(item: ItemWithDue) {
-    setItems((list) => list && (list.some((i) => i.id === item.id) ? list.map((i) => (i.id === item.id ? item : i)) : [...list, item]))
-  }
+  const say = (text: string) => setToast({ id: Date.now(), text })
 
-  async function markDone(item: ItemWithDue, odometer?: number) {
-    const { completionId, item: updated } = await api.done(item.id, { doneOn: now, odometer: odometer ?? null })
-    replace(updated)
-    setToast({
-      id: Date.now(),
-      text: `Marked ${item.name} done`,
-      action: {
-        label: 'Undo',
-        run: async () => {
-          await api.undo(completionId)
-          replace(item)
-        },
-      },
+  function putGroup(group: Group) {
+    setGroups((list) => {
+      const rest = (list ?? []).filter((g) => g.id !== group.id)
+      return [...rest, group].sort((a, b) => Number(a.archived) - Number(b.archived) || a.name.localeCompare(b.name))
     })
   }
 
-  async function save(input: SaveInput) {
-    if (editing) {
-      replace(await api.update(editing.id, input))
+  function putTask(task: Task) {
+    setGroups((list) =>
+      (list ?? []).map((g) =>
+        g.id === task.groupId ? { ...g, tasks: [...g.tasks.filter((t) => t.id !== task.id), task] } : g,
+      ),
+    )
+  }
+
+  const group = groups?.find((g) => g.id === groupId) ?? null
+
+  async function saveGroup(input: GroupInput & { copyFrom: number | null }) {
+    if (groupDialog.group) {
+      putGroup(await api.updateGroup(groupDialog.group.id, input))
     } else {
-      const { lastDone, ...rest } = input
-      replace(await api.create({ ...rest, lastDone: lastDone! }))
+      const created = await api.createGroup(input)
+      putGroup(created)
+      go(created.id)
     }
   }
 
-  async function remove(item: ItemWithDue) {
-    await api.remove(item.id)
-    setItems((list) => list && list.filter((i) => i.id !== item.id))
-    setToast({ id: Date.now(), text: `Deleted ${item.name}` })
+  async function saveTask(input: TaskInput) {
+    if (!group) return
+    putTask(taskDialog.task ? await api.updateTask(taskDialog.task.id, input) : await api.createTask(group.id, input))
   }
 
-  function openDialog(item: ItemWithDue | null) {
-    setEditing(item)
-    setDialogOpen(true)
+  async function deleteTask(task: Task) {
+    await api.deleteTask(task.id)
+    setGroups((list) => (list ?? []).map((g) => ({ ...g, tasks: g.tasks.filter((t) => t.id !== task.id) })))
+    say(`Deleted ${task.name}`)
   }
 
-  const withStatus = useMemo(
-    () => (items ?? []).map((item) => ({ item, status: status(item, now) })).sort((a, b) => byDue(a.item, b.item)),
-    [items, now],
-  )
-
-  const pick = (s: Status) => withStatus.filter((x) => x.status === s)
-  const overdue = pick('overdue')
-  const soon = pick('soon')
-  const upcoming = pick('upcoming')
-  const later = pick('later')
-  const recent = later.filter((x) => x.item.last && daysBetween(x.item.last.doneOn, now) <= 7)
-  const quietCount = later.length - recent.length
-  const categories = [...new Set((items ?? []).map((i) => i.category))].sort()
-
-  const rowProps = { onDone: markDone, onEdit: openDialog }
+  async function groupAction(action: () => Promise<Group>, message: string) {
+    putGroup(await action())
+    say(message)
+  }
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-160 flex-col px-5 pt-8 pb-32 sm:px-6 sm:pt-12">
@@ -116,173 +97,85 @@ export function App() {
           href="/"
           onClick={(e) => {
             e.preventDefault()
-            go('next')
+            go(null)
           }}
           className="rounded text-[15px] font-semibold tracking-tight"
         >
           upkeep
         </a>
-        <nav className="flex gap-1 text-sm" aria-label="Views">
-          {(
-            [
-              ['next', 'Up next', '/'],
-              ['all', 'All items', '/all'],
-            ] as const
-          ).map(([key, label, href]) => (
-            <a
-              key={key}
-              href={href}
-              aria-current={view === key ? 'page' : undefined}
-              onClick={(e) => {
-                e.preventDefault()
-                go(key)
-              }}
-              className="rounded-full px-3 py-1.5 text-muted transition-colors hover:text-ink aria-[current=page]:bg-ink/[0.06] aria-[current=page]:text-ink"
-            >
-              {label}
-            </a>
-          ))}
-        </nav>
       </header>
 
-      <main className="mt-12 flex flex-col gap-12 sm:mt-16">
+      <main className="mt-12 sm:mt-16">
         {loadError ? (
           <section className="flex flex-col items-start gap-4">
-            <h1 className="text-3xl font-medium tracking-tight">Couldn't load your items.</h1>
+            <h1 className="text-3xl font-medium tracking-tight">Couldn't load your calendars.</h1>
             <p className="text-muted">{loadError}</p>
-            <button onClick={load} className="h-11 rounded-full border border-ink px-5 text-sm font-medium">
+            <button onClick={load} className="button-secondary">
               Try again
             </button>
           </section>
-        ) : items === null ? null : items.length === 0 ? (
-          <section className="flex flex-col items-start gap-4">
-            <h1 className="text-[32px] leading-tight font-medium tracking-tight sm:text-[40px]">Nothing to keep track of yet.</h1>
-            <p className="max-w-md text-muted">
-              Add the first thing you keep forgetting. Common ones like the furnace filter and the oil change are
-              ready to pick, so all you set is when it was last done.
-            </p>
-            <button
-              onClick={() => openDialog(null)}
-              className="mt-2 h-11 rounded-full bg-ink px-5 text-sm font-medium text-paper"
-            >
-              Add item
-            </button>
-          </section>
-        ) : view === 'next' ? (
-          <LayoutGroup>
-            <motion.section
+        ) : groups === null ? null : (
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={group ? `g${group.id}` : 'list'}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="flex flex-col gap-2"
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
-              <p className="text-sm text-muted">
-                {new Date(now + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </p>
-              <h1 className="text-[32px] leading-[1.1] font-medium tracking-[-0.03em] text-balance sm:text-[40px]">
-                {overdue.length
-                  ? `${count(overdue.length)} ${overdue.length === 1 ? 'thing is' : 'things are'} overdue.`
-                  : 'All caught up.'}
-              </h1>
-              <p className="text-[17px] text-muted">
-                {soon.length + upcoming.length === 0
-                  ? `Nothing ${overdue.length ? 'else ' : ''}due in the next 30 days.`
-                  : `${count(soon.length + upcoming.length)}${overdue.length ? ' more' : ''} due in the next 30 days.`}
-              </p>
-            </motion.section>
-
-            <Group title="Overdue" rows={overdue} {...rowProps} />
-            <Group title="Due soon" rows={soon} {...rowProps} />
-            <Group title="Next 30 days" rows={upcoming} {...rowProps} />
-            <Group title="Done this week" rows={recent} recentlyDone {...rowProps} />
-
-            {quietCount > 0 && (
-              <p className="text-sm text-muted">
-                {count(quietCount)} more {quietCount === 1 ? "isn't" : "aren't"} due for a while.{' '}
-                <a
-                  href="/all"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    go('all')
+              {group ? (
+                <GroupPage
+                  group={group}
+                  back={() => go(null)}
+                  onAddTask={() => setTaskDialog({ open: true, task: null })}
+                  onEditTask={(task) => setTaskDialog({ open: true, task })}
+                  onRename={() => setGroupDialog({ open: true, group, copyFrom: null })}
+                  onCopy={() => setGroupDialog({ open: true, group: null, copyFrom: group.id })}
+                  onNewLink={() => {
+                    if (confirm('Calendars subscribed with the current link stop updating. Make a new link?'))
+                      groupAction(() => api.newLink(group.id), 'New link ready. Subscribe with it again.')
                   }}
-                  className="rounded text-ink underline decoration-rule underline-offset-4 hover:decoration-ink"
-                >
-                  See all items
-                </a>
-              </p>
-            )}
-          </LayoutGroup>
-        ) : (
-          <LayoutGroup>
-            <h1 className="text-[32px] leading-[1.1] font-medium tracking-[-0.03em] sm:text-[40px]">All items</h1>
-            {categories.map((c) => (
-              <Group
-                key={c}
-                title={c[0].toUpperCase() + c.slice(1)}
-                rows={withStatus.filter((x) => x.item.category === c)}
-                {...rowProps}
-              />
-            ))}
-          </LayoutGroup>
-        )}
-
-        {items && items.length > 0 && (
-          <button
-            onClick={() => openDialog(null)}
-            className="hidden h-11 self-start rounded-full bg-ink px-5 text-sm font-medium text-paper transition-transform active:scale-[0.97] sm:block"
-          >
-            Add item
-          </button>
+                  onArchive={() => groupAction(() => api.archive(group.id), `Archived ${group.name}. Its calendar is now empty.`)}
+                  onRestore={() => groupAction(() => api.restore(group.id), `Restored ${group.name}`)}
+                  onDelete={async () => {
+                    if (!confirm(`Delete ${group.name} and its tasks for good?`)) return
+                    await api.deleteGroup(group.id)
+                    setGroups((list) => (list ?? []).filter((g) => g.id !== group.id))
+                    go(null)
+                    say(`Deleted ${group.name}`)
+                  }}
+                  onCopied={() => say('Link copied')}
+                />
+              ) : (
+                <GroupList
+                  groups={groups}
+                  open={(g) => go(g.id)}
+                  onNew={() => setGroupDialog({ open: true, group: null, copyFrom: null })}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         )}
       </main>
 
-      {items && items.length > 0 && (
-        <button
-          onClick={() => openDialog(null)}
-          aria-label="Add item"
-          className="fixed right-5 bottom-6 grid size-14 place-items-center rounded-full bg-ink text-paper shadow-[0_8px_24px_-8px_rgb(22_25_29/0.5)] transition-transform active:scale-95 sm:hidden"
-        >
-          <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-        </button>
-      )}
-
-      <ItemDialog
-        item={editing}
-        open={dialogOpen}
-        categories={categories}
-        tracked={(items ?? []).map((i) => i.name.toLowerCase())}
-        onClose={() => setDialogOpen(false)}
-        onSave={save}
-        onDelete={remove}
+      <TaskDialog
+        open={taskDialog.open}
+        task={taskDialog.task}
+        kind={group?.kind ?? 'home'}
+        taken={group?.tasks.map((t) => t.name) ?? []}
+        onClose={() => setTaskDialog((d) => ({ ...d, open: false }))}
+        onSave={saveTask}
+        onDelete={deleteTask}
+      />
+      <GroupDialog
+        open={groupDialog.open}
+        group={groupDialog.group}
+        groups={groups ?? []}
+        copyFrom={groupDialog.copyFrom}
+        onClose={() => setGroupDialog((d) => ({ ...d, open: false }))}
+        onSave={saveGroup}
       />
       <Toast toast={toast} onDismiss={dismissToast} />
     </div>
-  )
-}
-
-interface GroupProps {
-  title: string
-  rows: { item: ItemWithDue; status: Status }[]
-  recentlyDone?: boolean
-  onDone: (item: ItemWithDue, odometer?: number) => Promise<void>
-  onEdit: (item: ItemWithDue) => void
-}
-
-function Group({ title, rows, recentlyDone, onDone, onEdit }: GroupProps) {
-  if (rows.length === 0) return null
-  return (
-    <section className="flex flex-col gap-3" aria-label={title}>
-      <h2 className="flex items-baseline gap-2 text-sm font-medium">
-        {title}
-        <span className="text-faint nums">{rows.length}</span>
-      </h2>
-      <ul className="border-t border-rule">
-        {rows.map(({ item, status }) => (
-          <ItemRow key={item.id} item={item} status={status} recentlyDone={recentlyDone} onDone={onDone} onEdit={onEdit} />
-        ))}
-      </ul>
-    </section>
   )
 }
