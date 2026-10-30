@@ -13,6 +13,10 @@
   --color-rule: #e2e5e9;
   --color-danger: #b42318;
 
+  /* Only used to show what subscribed calendars look like on the landing page. */
+  --color-cal-a: #3e6fd6;
+  --color-cal-b: #2f9467;
+
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
