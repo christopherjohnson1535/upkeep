@@ -1,9 +1,9 @@
 -- Sample data for local development: npm run db:seed
 
 INSERT INTO groups (id, name, kind, token) VALUES
-  (1, 'Elm St house', 'home', 'localhouse0000000000000000000001'),
-  (2, 'Civic', 'car', 'localcar00000000000000000000002'),
-  (3, 'Maple Ave house', 'home', 'localold00000000000000000000003');
+  (1, 'Elm St house', 'home', 'a0000000000000000000000000000001'),
+  (2, 'Civic', 'car', 'a0000000000000000000000000000002'),
+  (3, 'Maple Ave house', 'home', 'a0000000000000000000000000000003');
 
 UPDATE groups SET archived_at = datetime('now') WHERE id = 3;
 

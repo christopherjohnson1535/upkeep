@@ -1,5 +1,6 @@
 interface Env {
   DB: D1Database
-  ACCESS_TEAM_DOMAIN: string
-  ACCESS_AUD: string
+  BACKUPS: KVNamespace
+  TURNSTILE_SITE_KEY: string
+  TURNSTILE_SECRET?: string
 }

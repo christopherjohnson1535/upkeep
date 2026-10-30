@@ -3,6 +3,7 @@
   "name": "upkeep",
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "/feed/*"]
@@ -15,9 +16,13 @@
       "migrations_dir": "migrations"
     }
   ],
+  "kv_namespaces": [{ "binding": "BACKUPS", "id": "eb78f22ab2384e109a320bb05928a34c" }],
+  "triggers": {
+    // nightly backup, a little after 3am Mountain
+    "crons": ["17 9 * * *"]
+  },
   "vars": {
-    // Cloudflare Access. Leave empty locally; set both in production.
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": ""
+    // Optional human check on sign-up. Set this and the TURNSTILE_SECRET secret together.
+    "TURNSTILE_SITE_KEY": ""
   }
 }
