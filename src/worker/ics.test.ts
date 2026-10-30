@@ -28,6 +28,7 @@ describe('calendar', () => {
     expect(ics).toContain('RRULE:FREQ=MONTHLY;INTERVAL=3\r\n')
     expect(ics).toContain('DTSTAMP:20261029T211127Z\r\n')
     expect(ics).toContain('TRIGGER:-P6DT15H\r\n')
+    expect(ics).toContain('TRANSP:TRANSPARENT\r\nX-MICROSOFT-CDO-BUSYSTATUS:FREE\r\n')
     expect(ics.endsWith('END:VCALENDAR\r\n')).toBe(true)
   })
 

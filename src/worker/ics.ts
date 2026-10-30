@@ -62,7 +62,9 @@ function event(task: Task) {
     `RRULE:${rule}`,
     `SUMMARY:${text(task.name)}`,
     `DESCRIPTION:${text(description(task))}`,
+    // Show as free, never busy. The second line is the one Outlook reads.
     'TRANSP:TRANSPARENT',
+    'X-MICROSOFT-CDO-BUSYSTATUS:FREE',
     'BEGIN:VALARM',
     'ACTION:DISPLAY',
     `DESCRIPTION:${text(task.name)}`,
